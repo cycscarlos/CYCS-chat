@@ -11,9 +11,10 @@
 
 ## Estado actual — 30/10/2026
 
-- **Proyecto nuevo.** Un solo commit: `0b3b770 first commit` en `main` (= `origin/main`).
-- **Sin tareas pendientes.** El árbol de trabajo solo tiene sin trackear `config_session/` y
-  `opencode.json` (configuración del agente, no código de la app).
+- **Proyecto nuevo.** Base: commit `0b3b770 first commit`; checkpoint `9d58e1a` (estado previo al
+  botón de tema) en `main`.
+- **HECHO (30/10): botón de tema claro/oscuro** (ver abajo). Implementado, con sintaxis verificada y
+  **verificación visual del usuario ✅**. Commit final de la tarea incluido en el historial de `main`.
 - **Sin tests ni lint** configurados todavía.
 - **No verificado en ejecución** en esta sesión (los servicios los inicia el usuario, `rules.md` §2).
 
@@ -74,6 +75,21 @@ Abrir `http://localhost:3000`.
   - Antepone un `system` en español.
   - Devuelve `{ answer }` o `{ error }` con el status correspondiente.
 
+## HECHO (30/10/2026) — botón de tema claro/oscuro
+
+- **Ubicación:** topbar, junto a «Limpiar», dentro de `.topbar-actions`. Botón circular `#theme-toggle`
+  con SVG sol/luna, `aria-label` dinámico, `aria-pressed` y `title`.
+- **Comportamiento:** lee `localStorage["cycs-theme"]`; si no existe usa `prefers-color-scheme`.
+  Aplica `data-theme="light|dark"` en `<html>`. Un script inline en el `<head>` (antes del CSS) evita
+  el parpadeo inicial. Si el usuario no ha elegido, sigue en vivo los cambios del sistema.
+  También actualiza `<meta name="theme-color">`.
+- **CSS:** `styles.css` pasó de colores literales a tokens en `:root` (claro) y `:root[data-theme="dark"]`
+  (oscuro). Paleta oscura: fondo `#0f1115`, superficie `#171a20`, sidebar `#12151a`, borde `#262b33`,
+  texto `#e6e8ec`; el ámbar `#e69138` se conserva. Transiciones suaves con `prefers-reduced-motion`.
+- **Archivos:** `public/index.html`, `public/styles.css`, `public/script.js`. Sin cambios en `server.js`.
+- **Verificación:** `node --check public/script.js` OK; llaves CSS 133/133; **verificación visual del
+  usuario ✅** (claro ↔ oscuro, persistencia al recargar y móvil).
+
 ## Hallazgos / deuda conocida (NO son tareas; requieren autorización para tocarse)
 
 - **El selector de modelo no tiene efecto.** `public/script.js` envía `model`, pero `server.js:70`
@@ -116,10 +132,19 @@ Ninguno. (Ver «Hallazgos / deuda conocida»: son observaciones, no tareas autor
 
 ## Registro de sesiones
 
+### 30/10/2026 — Botón de tema claro/oscuro
+
+- Checkpoint previo `9d58e1a`.
+- Se tokenizaron los colores de `styles.css` y se añadió `:root[data-theme="dark"]`.
+- Se añadió el botón `#theme-toggle` en el topbar, el script anti-parpadeo y la lógica de alternancia
+  con `localStorage` + `prefers-color-scheme`.
+- Verificado: `node --check` OK, llaves CSS balanceadas y **verificación visual del usuario ✅**.
+- Commit final de la tarea (el `push` lo hace el usuario).
+
 ### 30/10/2026 — Depuración inicial de la memoria
 
 - Se inspeccionó el proyecto real: `server.js`, `public/*`, `package.json`, `README.md`, `.gitignore`,
   `.env` (solo claves) y el historial de git.
 - Se **reemplazó por completo** `config_session/memory.md` (831 líneas de otro proyecto → memoria
   vigente de CYCS Chat).
-- Sin cambios de código. Sin commits (solo se editó este archivo).
+- Sin cambios de código. Commit de checkpoint `9d58e1a` (incluye esta memoria).

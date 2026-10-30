@@ -8,6 +8,22 @@
       content="Chat de IA con JavaScript, Node.js, pnpm y los modelos de ApiNex."
     />
     <meta name="theme-color" content="#ffffff" />
+    <script>
+      (() => {
+        try {
+          const stored = localStorage.getItem("cycs-theme");
+          const theme =
+            stored === "light" || stored === "dark"
+              ? stored
+              : window.matchMedia("(prefers-color-scheme: dark)").matches
+                ? "dark"
+                : "light";
+          document.documentElement.dataset.theme = theme;
+        } catch {
+          document.documentElement.dataset.theme = "light";
+        }
+      })();
+    </script>
     <link rel="icon" type="image/webp" href="favicon.webp" />
     <title>CYCS Chat · ApiNex</title>
     <link rel="stylesheet" href="/styles.css" />
@@ -55,14 +71,51 @@
             <span>Chat con IA</span>
           </div>
 
-          <button
-            class="clear-button"
-            id="clear-button"
-            type="button"
-            title="Limpiar conversación"
-          >
-            Limpiar
-          </button>
+          <div class="topbar-actions">
+            <button
+              class="theme-toggle"
+              id="theme-toggle"
+              type="button"
+              aria-label="Cambiar a tema oscuro"
+              aria-pressed="false"
+              title="Cambiar a tema oscuro"
+            >
+              <svg
+                class="icon icon-moon"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+              <svg
+                class="icon icon-sun"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                stroke-width="2"
+                stroke-linecap="round"
+                stroke-linejoin="round"
+                aria-hidden="true"
+              >
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41" />
+              </svg>
+            </button>
+
+            <button
+              class="clear-button"
+              id="clear-button"
+              type="button"
+              title="Limpiar conversación"
+            >
+              Limpiar
+            </button>
+          </div>
         </header>
 
         <section class="chat-area" aria-label="Conversación">

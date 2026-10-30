@@ -7,9 +7,68 @@ const newChatButton = document.querySelector("#new-chat-button");
 const clearButton = document.querySelector("#clear-button");
 const modelSelect = document.querySelector("#model-select");
 const sidebarModelName = document.querySelector("#sidebar-model-name");
+const themeToggle = document.querySelector("#theme-toggle");
+const themeColorMeta = document.querySelector('meta[name="theme-color"]');
+
+const rootElement = document.documentElement;
+const themeMedia = window.matchMedia("(prefers-color-scheme: dark)");
+const THEME_STORAGE_KEY = "cycs-theme";
 
 let conversation = [];
 let busy = false;
+
+function getStoredTheme() {
+  try {
+    const stored = localStorage.getItem(THEME_STORAGE_KEY);
+    return stored === "light" || stored === "dark" ? stored : null;
+  } catch {
+    return null;
+  }
+}
+
+function saveTheme(theme) {
+  try {
+    localStorage.setItem(THEME_STORAGE_KEY, theme);
+  } catch {
+    // localStorage puede no estar disponible; el tema sigue funcionando en la sesión.
+  }
+}
+
+function applyTheme(theme) {
+  rootElement.dataset.theme = theme;
+
+  if (themeColorMeta) {
+    themeColorMeta.content = theme === "dark" ? "#0f1115" : "#ffffff";
+  }
+
+  if (!themeToggle) return;
+
+  const goingDark = theme !== "dark";
+  const label = goingDark ? "Cambiar a tema oscuro" : "Cambiar a tema claro";
+
+  themeToggle.setAttribute("aria-label", label);
+  themeToggle.setAttribute("aria-pressed", String(theme === "dark"));
+  themeToggle.title = label;
+}
+
+function currentTheme() {
+  return rootElement.dataset.theme === "dark" ? "dark" : "light";
+}
+
+applyTheme(getStoredTheme() ?? (themeMedia.matches ? "dark" : "light"));
+
+themeToggle?.addEventListener("click", () => {
+  const next = currentTheme() === "dark" ? "light" : "dark";
+
+  applyTheme(next);
+  saveTheme(next);
+});
+
+themeMedia.addEventListener?.("change", (event) => {
+  if (getStoredTheme()) return;
+
+  applyTheme(event.matches ? "dark" : "light");
+});
 
 function getModelName() {
   return modelSelect.options[modelSelect.selectedIndex].text;
