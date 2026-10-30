@@ -95,7 +95,8 @@ Abrir `http://localhost:3000`.
 - **El selector de modelo no tiene efecto.** `public/script.js` envía `model`, pero `server.js:70`
   usa el literal `"free/deepseek-v4.1-flash"` e ignora `req.body.model`. La UI ofrece 11 modelos
   (`muse-spark-1.3`, `glm-5.3-flash`, `gemini-3.8-flash`, `gpt-6-luna`, etc.) que hoy no se aplican.
-- **Falta `.env.example`.** `README.md` y `.gitignore` lo referencian, pero no existe en el repo.
+- **`.env.example`: resuelto (30/10).** El usuario actualizó `README.md` y `.gitignore`: ya no se
+  referencia la plantilla; el `.env` se crea manualmente en la raíz y `.gitignore` solo ignora `.env`.
 - **`config_session/rules.md` apunta a archivos inexistentes:** `AGENTS.md`, `PRODUCT.md`,
   `DESIGN.md`, `docs/planes/`, `tools/migration/`, `index.js` y MySQL. Son restos del proyecto
   anterior; no aplican a CYCS Chat (salvo que el usuario los quiera crear).

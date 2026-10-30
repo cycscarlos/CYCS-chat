@@ -18,15 +18,9 @@ pnpm install
 
 ## 2. Configurar las variables
 
-Copia `.env.example` y crea un archivo llamado `.env` en la raíz del proyecto.
+Crea un archivo llamado `.env` en la raíz del proyecto.
 
-En macOS o Linux:
-
-```bash
-cp .env.example .env
-```
-
-Abre `.env` y sustituye los valores de ejemplo:
+Abre `.env` y sustituye los valores con las credenciales que te proporcione ApiNex:
 
 ```env
 APINEX_API_KEY=tu_api_key_real
