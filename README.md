@@ -55,6 +55,18 @@ http://localhost:3000
 3. Continúa conversando; el historial reciente se envía para conservar el contexto.
 4. Usa **Copiar respuesta** para copiar una respuesta o **Nueva conversación** para empezar de cero.
 
+## Desplegar en Netlify
+
+El archivo `netlify.toml` publica la carpeta `public`, donde está `index.html`.
+No hace falta un comando de compilación ni ejecutar `pnpm start` en producción.
+Las rutas `/api/chat` y `/api/health` se ejecutan mediante Netlify Functions;
+`server.js` sigue disponible para el desarrollo local.
+
+Configura `APINEX_API_KEY` y `APINEX_BASE_URL` en las variables de entorno del
+proyecto en Netlify, disponibles para las funciones, y vuelve a desplegar.
+El archivo `.env` local no se publica. Puedes comprobar `/api/health`: el campo
+`configured` indica si ambas variables están disponibles sin revelar sus valores.
+
 ## Modelo configurado
 
 El servidor usa exactamente el identificador que compartiste:

@@ -8,6 +8,7 @@
     "start": "node server.js"
   },
   "dependencies": {
+    "@netlify/functions": "^6.0.3",
     "dotenv": "^16.4.7",
     "express": "^5.1.0",
     "openai": "^5.12.2"

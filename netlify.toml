@@ -1,0 +1,10 @@
+[build]
+  publish = "public"
+
+[functions]
+  directory = "netlify/functions"
+
+[dev]
+  command = "pnpm dev"
+  targetPort = 3000
+  port = 8889
