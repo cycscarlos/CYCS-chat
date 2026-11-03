@@ -4,24 +4,22 @@
 > Al cerrar una tarea se **actualiza** este archivo; **no** se anexa un diario.
 > Histórico detallado (si hiciera falta) va a `config_session/anterior_memory.md`;
 > el código exacto de cada cambio queda en git (`git show <hash>`).
->
-> **Nota de depuración (30/10/2026):** este archivo contenía ~831 líneas de un proyecto
-> distinto (posadas / MySQL / alwaysdata) con rutas, commits y planes inexistentes aquí.
-> Se reemplazó por completo para iniciar la memoria persistente de **CYCS Chat**.
 
-## Estado actual — 30/10/2026
+## Estado actual — 02/11/2026
 
-- **Proyecto nuevo.** Base: commit `0b3b770 first commit`; checkpoint `9d58e1a` (estado previo al
-  botón de tema) en `main`.
-- **HECHO (30/10): botón de tema claro/oscuro** (ver abajo). Implementado, con sintaxis verificada y
-  **verificación visual del usuario ✅**. Commit final de la tarea incluido en el historial de `main`.
-- **Sin tests ni lint** configurados todavía.
-- **No verificado en ejecución** en esta sesión (los servicios los inicia el usuario, `rules.md` §2).
+- **Fase: planificación cerrada. Implementación NO iniciada.** El código está intacto desde `e5768b5`.
+- **Plan vigente:** `docs/planes/plan-endurecimiento-chat.md` — 8 fases, 23 tareas
+  (18 obligatorias + 5 opcionales). Commit del plan: **`d1e55a6`**.
+- **Bloqueado por:** autorización explícita del usuario + respuestas a **D1–D6** (ver «Plan vigente»).
+- **Repo:** `main` limpio. HEAD = commit de esta memoria (ver `git log -1`) → `d1e55a6` (plan) → `e5768b5` (merge PR #1).
+- **Sin tests ni linter** todavía; el plan los introduce en T2.1 (`node --test`).
+- **Servicios:** los inicia el usuario (`rules.md` §2). En esta sesión no se ejecutó ni se tocó nada.
 
 ## Qué es
 
-Aplicación **local** de chat con IA. Frontend estático (HTML/CSS/JS) + backend Node/Express que
-llama a un endpoint compatible con OpenAI (`ApiNex`) usando el SDK `openai`. No hay base de datos.
+Aplicación de chat con IA. Frontend estático (HTML/CSS/JS) + backend Node/Express **local** y una
+**función serverless de Netlify** para producción. Ambos llaman a un endpoint compatible con OpenAI
+(`ApiNex`) usando el SDK `openai`. No hay base de datos.
 
 - Nombre: `apinex-deepseek-chat` (UI: «CYCS Chat»).
 - Modelo por defecto: `free/deepseek-v4.1-flash` («DeepSeek V4.1 Flash 1017»).
@@ -31,21 +29,24 @@ llama a un endpoint compatible con OpenAI (`ApiNex`) usando el SDK `openai`. No 
 
 | Archivo | Rol |
 |---|---|
-| `server.js` | Express 5, sirve `public/` y expone `/api/health` y `/api/chat`. Llama a ApiNex. |
-| `public/index.html` | Interfaz: sidebar, bienvenida, sugerencias, composer, selector de modelo. |
-| `public/script.js` | Estado de la conversación, envío a `/api/chat`, typing, copiar, reiniciar. |
-| `public/styles.css` | Diseño responsive (escritorio/móvil). |
-| `public/favicon.webp` | Icono. |
-| `package.json` | ESM (`"type": "module"`), scripts `dev` / `start`. |
+| `server.js` | Express 5 **solo para desarrollo local**: sirve `public/` y expone `/api/health` y `/api/chat`. |
+| `netlify/functions/chat.mts` | Función de producción (`POST /api/chat`), Functions v2. **Duplica** la lógica de `server.js`. |
+| `netlify/functions/health.mts` | Función de producción (`GET /api/health`). |
+| `netlify.toml` | `publish = "public"`, directorio de funciones y configuración de `netlify dev`. |
+| `public/index.html` | Interfaz: sidebar, bienvenida, sugerencias, composer, selector de modelo (11 opciones). |
+| `public/script.js` | Estado de la conversación, envío a `/api/chat`, typing, copiar, reiniciar, tema. |
+| `public/styles.css` | Diseño responsive (escritorio/móvil), tokens de color claro/oscuro. |
+| `package.json` | ESM (`"type": "module"`), scripts `dev` / `start`. **Sin** `engines` ni `packageManager`. |
 | `pnpm-lock.yaml` | Lock de dependencias (gestor: **pnpm**). |
-| `.env` | Credenciales locales (ignorado por git). |
+| `.env` | Credenciales locales. Ignorado por git y **nunca** estuvo en el historial (verificado). |
 | `opencode.json` | Carga `config_session/rules.md` y `config_session/memory.md` como instrucciones. |
+| `docs/planes/plan-endurecimiento-chat.md` | Plan vigente (fases, tareas, riesgos, verificaciones). |
+| `test/`, `tools/`, `lib/` | **Aún no existen**; los crea el plan (T2.1, T4.1). |
 
-Dependencias: `dotenv`, `express@^5.1.0`, `openai@^5.12.2`. Node observado: v22.23.1 · pnpm 12.16.1.
+Dependencias: `dotenv`, `express@^5.1.0`, `openai@^5.12.2`, `@netlify/functions@^6.0.3`.
+Entorno observado: **Node v22.23.1 · pnpm 12.16.1**.
 
 ## Configuración (`.env`)
-
-Variables requeridas por el servidor:
 
 ```env
 APINEX_API_KEY=...
@@ -60,48 +61,110 @@ Sin `APINEX_API_KEY` o `APINEX_BASE_URL`, `/api/chat` responde 500 con un mensaj
 
 ```bash
 pnpm install
-pnpm dev      # node --watch server.js
-pnpm start    # node server.js
+pnpm dev        # node --watch server.js  → http://localhost:3000
+pnpm start      # node server.js
+netlify dev     # emula Netlify (funciones + proxy) → http://localhost:8889
 ```
 
-Abrir `http://localhost:3000`.
+En `netlify dev` las rutas de función tienen prioridad sobre el proxy a `pnpm dev`: **`/api/chat`
+prueba la función, no Express**.
 
-## Contrato de la API
+## Contrato de la API (estado real, 02/11/2026)
 
 - `GET /api/health` → `{ ok: true, configured: boolean }`.
 - `POST /api/chat` → body `{ messages: [{ role, content }], model? }`.
-  - Filtra solo `user`/`assistant`, descarta vacíos, conserva los **últimos 20** mensajes y
-    trunca cada contenido a **12 000** caracteres.
-  - Antepone un `system` en español.
-  - Devuelve `{ answer }` o `{ error }` con el status correspondiente.
+  - **`model` se ignora**: `server.js:70` y `chat.mts:58` usan el literal `"free/deepseek-v4.1-flash"`,
+    aunque el frontend lo envía (`public/script.js:219-222`).
+  - Filtra solo `user`/`assistant`, descarta vacíos, conserva los **últimos 20** mensajes y trunca
+    cada contenido a **12 000** caracteres (`server.js:59-63`, `chat.mts:47-51`).
+  - Antepone un `system` en español y devuelve `{ answer }` o `{ error }`.
+  - **Sin `max_tokens`**, **sin autenticación**, **sin rate limit**.
+- Hay **dos implementaciones equivalentes** del endpoint (Express y función Netlify): todo cambio de
+  lógica debe hacerse en ambas hasta que el plan (Fase 2) las unifique en `lib/chat-core.mjs`.
 
-## HECHO (30/10/2026) — botón de tema claro/oscuro
+## Hallazgos confirmados (evidencia verificada el 02/11/2026)
 
-- **Ubicación:** topbar, junto a «Limpiar», dentro de `.topbar-actions`. Botón circular `#theme-toggle`
-  con SVG sol/luna, `aria-label` dinámico, `aria-pressed` y `title`.
-- **Comportamiento:** lee `localStorage["cycs-theme"]`; si no existe usa `prefers-color-scheme`.
-  Aplica `data-theme="light|dark"` en `<html>`. Un script inline en el `<head>` (antes del CSS) evita
-  el parpadeo inicial. Si el usuario no ha elegido, sigue en vivo los cambios del sistema.
-  También actualiza `<meta name="theme-color">`.
-- **CSS:** `styles.css` pasó de colores literales a tokens en `:root` (claro) y `:root[data-theme="dark"]`
-  (oscuro). Paleta oscura: fondo `#0f1115`, superficie `#171a20`, sidebar `#12151a`, borde `#262b33`,
-  texto `#e6e8ec`; el ámbar `#e69138` se conserva. Transiciones suaves con `prefers-reduced-motion`.
-- **Archivos:** `public/index.html`, `public/styles.css`, `public/script.js`. Sin cambios en `server.js`.
-- **Verificación:** `node --check public/script.js` OK; llaves CSS 133/133; **verificación visual del
-  usuario ✅** (claro ↔ oscuro, persistencia al recargar y móvil).
+Ordenados por severidad. **No son tareas**: se ejecutan solo si el usuario autoriza (plan vigente).
 
-## Hallazgos / deuda conocida (NO son tareas; requieren autorización para tocarse)
+1. **Endpoint abierto** — sin auth ni rate limit (`server.js:32`, `chat.mts:8`). Riesgo económico directo
+   sobre la cuota de ApiNex. → Fase 7.
+2. **Selector de modelo muerto** — `script.js:219-222` envía `model`; backend lo ignora
+   (`server.js:70`, `chat.mts:58`). UI con 11 opciones en `index.html:202-222`.
+   `free/jev-1.13` corresponde a un modelo **System One** (no chat) y fallaría por chat completions;
+   `free/glm-5.3-flashx` y `free/minimax-m3.1-flash` son IDs **no verificados**. → Fase 4.
+3. **Lógica duplicada** — validación, prompt y límites copiados en `server.js:41-79` y `chat.mts:29-67`.
+   → Fase 2.
+4. **Errores inconsistentes** — Express filtra el texto del proveedor al cliente (`server.js:93-100`);
+   la función responde 502 genérico y **no registra nada** (`chat.mts:78-80`) → imposible depurar en
+   producción. → Fase 2 (T2.4).
+5. **Sin techo de costo** — no hay `max_tokens`; 20 × 12 000 = hasta ~240 000 caracteres por petición.
+   → Fase 3.
+6. **Entorno no reproducible** — `package.json` sin `engines` ni `packageManager`; Netlify puede usar
+   otro Node/pnpm que el local. → Fase 1.
+7. **`@netlify/functions` en `dependencies`** (`package.json:11`) — solo se usa como tipo
+   (`chat.mts:2`). → T1.3 (opcional).
+8. **Body sin límite en la función** — Express limita a 1 MB (`server.js:10`); `chat.mts:25` lee
+   `req.json()` sin tope. → T3.3.
+9. **`express.static("public")` relativo al CWD** (`server.js:11`) — falla si se arranca desde otra carpeta.
+10. **Sin timeout de cliente** — `script.js` no usa `AbortController`; el servidor puede tardar hasta 60 s.
+    → T5.1.
+11. **El cliente es la fuente de verdad del historial** — el backend acepta cualquier turno
+    `user`/`assistant` enviado (`server.js:51-58`). No es escalada, pero permite inyectar turnos falsos.
+12. **XSS: correcto** — `script.js:121` usa `textContent`. **No tocar.**
 
-- **El selector de modelo no tiene efecto.** `public/script.js` envía `model`, pero `server.js:70`
-  usa el literal `"free/deepseek-v4.1-flash"` e ignora `req.body.model`. La UI ofrece 11 modelos
-  (`muse-spark-1.3`, `glm-5.3-flash`, `gemini-3.8-flash`, `gpt-6-luna`, etc.) que hoy no se aplican.
-- **`.env.example`: resuelto (30/10).** El usuario actualizó `README.md` y `.gitignore`: ya no se
-  referencia la plantilla; el `.env` se crea manualmente en la raíz y `.gitignore` solo ignora `.env`.
-- **`config_session/rules.md` apunta a archivos inexistentes:** `AGENTS.md`, `PRODUCT.md`,
-  `DESIGN.md`, `docs/planes/`, `tools/migration/`, `index.js` y MySQL. Son restos del proyecto
-  anterior; no aplican a CYCS Chat (salvo que el usuario los quiera crear).
-- **No hay suite de pruebas ni linter**, así que `rules.md` §3 (la IA corre `npm test`) no tiene
-  comando todavía.
+## Plan vigente (resumen ejecutivo)
+
+Documento completo: `docs/planes/plan-endurecimiento-chat.md` (commit `d1e55a6`).
+
+| Fase | Tareas | Esfuerzo | Punto del análisis |
+|---|---|---|---|
+| 0 — Línea base | T0.1 | S | (preparación) |
+| 1 — Entorno reproducible | T1.1, T1.2, T1.3* | S | 5 |
+| 2 — Núcleo compartido | T2.1 → T2.4 | M | 3 |
+| 3 — Límites contexto/costo | T3.1 → T3.3 | S | 6 |
+| 4 — Selector de modelo | T4.1 → T4.3 | M | 2 |
+| 5 — Timeout/latencia | T5.1 | S | 4a |
+| 6 — Streaming* | T6.1 → T6.3 | L | 4b |
+| 7 — Protección del endpoint | T7.1 → T7.5* | M | 1 |
+
+`*` = opcional. Orden recomendado: `0 → 1 → 2 → 3 → 4 → 5 → 7 → [6 si D2 = sí]`.
+La Fase 7 es independiente y **puede ejecutarse primero** si se quiere reducir el riesgo económico ya.
+La Fase 2 va antes de 3 y 4 para implementar límites y selector una sola vez.
+
+### Decisiones pendientes (bloquean la implementación)
+
+| ID | Decisión | Propuesta por defecto |
+|---|---|---|
+| **D1** | Límites de contexto | 12 mensajes · 4.000 chars por mensaje · `max_tokens` 1.024 |
+| **D2** | ¿Streaming (Fase 6)? | **No** por ahora; reevaluar con las mediciones de T2.4 |
+| **D3** | Rate limit | 10 peticiones / 60 s por IP + dominio → 429 |
+| **D4** | Modelos permitidos | Los que valide T4.1 (excluyendo Jev, que no es chat) |
+| **D5** | ¿Turnstile/captcha? | No |
+| **D6** | ¿Región `gru` (São Paulo)? | No: requiere plan Pro/Enterprise |
+
+### Definition of Done (por tarea)
+
+1. Checkpoint `checkpoint: tarea <fase>.<n> — <descripción>` **antes** de tocar código.
+2. Cambio acotado a los archivos declarados en el plan.
+3. Verificación automatizada de la IA (`node --check`, `node --test`, bundle esbuild) reportada.
+4. Verificación visual del usuario ✅.
+5. `memory.md` actualizado (tarea, commit, estado).
+6. Commit final de la tarea; el `push` lo hace el usuario.
+
+## Hechos técnicos verificados (Netlify, 02/11/2026)
+
+Fuente: `docs.netlify.com/build/functions/configuration.md` y `/api.md`.
+
+- **Límite de ejecución síncrona: 60 s. No configurable.** No existe `config.timeout`.
+- Streaming: 60 s y 20 MB de respuesta; payload buffered: 6 MB.
+- **`config.rateLimit` existe** (`windowLimit`, `windowSize`, `aggregateBy`, `action`, `to`): la
+  protección del endpoint no necesita servicio externo.
+- El runtime de funciones usa la versión de Node del **build**; si no es válida, cae a **Node 24**.
+- `[functions] node_bundler = "esbuild"` es configurable en `netlify.toml` (necesario para que el
+  bundle resuelva `lib/`).
+- `region` (p. ej. `gru`) requiere plan Pro/Enterprise.
+- **Corrección al análisis del 02/11:** dije «10 s por defecto / 26 s configurable»; es **incorrecto**.
+  No repetir ese dato.
 
 ## Reglas de trabajo
 
@@ -118,6 +181,16 @@ Fuente: `config_session/rules.md`. Resumen operativo:
 9. Todo SQL (si algún día hay BD) se entrega como archivo `.sql`, no como texto suelto.
 10. `memory.md` se actualiza con cada tarea finalizada.
 
+## Cómo continuar en una sesión nueva
+
+1. Leer `config_session/rules.md`, este archivo y `docs/planes/plan-endurecimiento-chat.md`.
+2. Verificar el estado real: `git status`, `git log -5`, `node -v`, `pnpm -v`.
+3. **Pedir autorización** de implementación y las respuestas a **D1–D6** (o «usa las propuestas»).
+4. Empezar por **T0.1** con `checkpoint: tarea 0.1 — línea base`.
+5. Respetar el ciclo: checkpoint → implementar → pruebas de la IA → verificación visual del usuario →
+   commit final → actualizar esta memoria.
+6. **No iniciar servicios** (los arranca el usuario) y **no hacer `push`**.
+
 ## Protocolo de memoria
 
 - Este archivo es la **única** fuente de contexto entre sesiones.
@@ -125,27 +198,34 @@ Fuente: `config_session/rules.md`. Resumen operativo:
   registrar el commit. Si algo deja de ser vigente, se elimina (no se acumula).
 - Los pendientes reales van en «Pendientes abiertos»; la deuda aceptada no se disfraza de tarea.
 - Ante la pregunta «¿qué hay pendiente?»: verificar `git status`, el estado real del repo y esta
-  sección antes de responder. Si no hay nada: «¡No hay absolutamente nada pendiente!».
+  sección antes de responder.
 
 ## Pendientes abiertos
 
-Ninguno. (Ver «Hallazgos / deuda conocida»: son observaciones, no tareas autorizadas.)
+- **Autorización de implementación + respuestas a D1–D6** (bloquea todo el plan).
+- **`git push`** de `d1e55a6` (plan) y del commit de esta memoria (lo hace el usuario).
+- Nota de despliegue: `publish = "public"`, así que `docs/` y `config_session/` **no se publican** en
+  Netlify; el push solo actualiza el repo y redepliega la web.
 
 ## Registro de sesiones
 
+### 02/11/2026 — Análisis de solo lectura + plan de endurecimiento
+
+- Análisis estático completo del proyecto (sin tocar código, sin iniciar servicios, sin instalar nada):
+  backend Express, función Netlify, frontend, `netlify.toml`, `package.json`, `.env` (solo claves) y git.
+- Se verificó la documentación oficial de Netlify y se **corrigió** el dato del timeout (60 s fijos, no
+  configurable) y se confirmó `config.rateLimit`.
+- Se redactó `docs/planes/plan-endurecimiento-chat.md` (8 fases, 23 tareas, riesgos y verificaciones).
+- Commit del plan: **`d1e55a6`**. Commit de esta memoria: ver `git log -1`.
+- **Sin cambios de código.** El usuario hará `git push` y Netlify redeployará.
+
 ### 30/10/2026 — Botón de tema claro/oscuro
 
-- Checkpoint previo `9d58e1a`.
-- Se tokenizaron los colores de `styles.css` y se añadió `:root[data-theme="dark"]`.
-- Se añadió el botón `#theme-toggle` en el topbar, el script anti-parpadeo y la lógica de alternancia
-  con `localStorage` + `prefers-color-scheme`.
-- Verificado: `node --check` OK, llaves CSS balanceadas y **verificación visual del usuario ✅**.
-- Commit final de la tarea (el `push` lo hace el usuario).
+- Checkpoint previo `9d58e1a`. Se tokenizaron los colores de `styles.css` y se añadió
+  `:root[data-theme="dark"]`; botón `#theme-toggle`, script anti-parpadeo y persistencia en
+  `localStorage` + `prefers-color-scheme`. `node --check` OK y verificación visual del usuario ✅.
 
 ### 30/10/2026 — Depuración inicial de la memoria
 
-- Se inspeccionó el proyecto real: `server.js`, `public/*`, `package.json`, `README.md`, `.gitignore`,
-  `.env` (solo claves) y el historial de git.
-- Se **reemplazó por completo** `config_session/memory.md` (831 líneas de otro proyecto → memoria
-  vigente de CYCS Chat).
-- Sin cambios de código. Commit de checkpoint `9d58e1a` (incluye esta memoria).
+- Se reemplazó por completo `config_session/memory.md` (contenía ~831 líneas de otro proyecto).
+- Sin cambios de código. Commit de checkpoint `9d58e1a`.
